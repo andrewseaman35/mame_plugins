@@ -91,7 +91,7 @@ function build_get_request(bucket, filepath)
 end
 
 function api_file_log(str)
-	file = io.open("aws_highscore_api.log", "a+")
+	file = io.open("/tmp/aws_highscore_api.log", "a+")
 	io.output(file)
 	if type(str) == "string" then
 		io.write(str)

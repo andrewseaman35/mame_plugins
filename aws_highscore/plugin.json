@@ -1,0 +1,10 @@
+{
+  "plugin": {
+	"name": "aws_highscore",
+	"description": "AWS Backed highscore 2",
+	"version": "1.0.0",
+	"author": "borgar@borgar.net",
+	"type": "plugin",
+	"start": "false"
+  }
+}
