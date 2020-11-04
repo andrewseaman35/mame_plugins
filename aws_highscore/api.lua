@@ -140,7 +140,7 @@ end
 function api.save_highscore_file(filename)
 	api_file_log('API save: ' .. filename)
 	local cmd = build_put_request("aseaman-public-bucket", filename)
-	if false then
+	if true then
 		api_file_log('making the PUT request!')
 		response = io.popen(cmd)
 	else
