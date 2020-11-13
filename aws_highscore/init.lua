@@ -324,7 +324,9 @@ function hiscore.startplugin()
 				end
 			end
 			local aws_highscore = api.get_highscore_file(get_file_name())
-			save_scores_from_aws(aws_highscore)
+			if aws_highscore ~= nil then
+				save_scores_from_aws(aws_highscore)
+			end
 			found_hiscore_entry = true
 		end
 	end)

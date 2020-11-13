@@ -120,21 +120,25 @@ function api.get_highscore_file(filepath)
 	api_file_log('API 1 get: ' .. filepath)
 	local score_lines = {}
 	local cmd = build_get_request("aseaman-public-bucket", filepath)
-	if true then
-		api_file_log('making the GET request!')
-		response = io.popen(cmd)
-		for line in response:lines() do
-			api_file_log(line)
+	local file_exists = true
+
+	api_file_log('making the GET request!')
+	response = io.popen(cmd) 
+	for line in io.lines('/tmp/temp_hiscore.out') do
+		if string.match(line, 'NoSuchKey') then
+			file_exists = false
+			api_file_log('breaking')
+			break
 		end
-		for line in io.lines('/tmp/temp_hiscore.out') do
-			score_lines[#score_lines + 1] = line
-			api_file_log(line)
-		end
-	else
-		api_file_log('didnt make the GET request')
+		score_lines[#score_lines + 1] = line
+		api_file_log(line)
 	end
 
-	return score_lines
+	if file_exists then
+		return score_lines
+	end
+	
+	return nil
 end
 
 function api.save_highscore_file(filename)
