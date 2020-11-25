@@ -16,7 +16,7 @@ exports.license = "WTFPL license"
 exports.author = { name = "borgar@borgar.net" }
 local hiscore = exports
 
-local INIT_FILE_LOG = '/tmp/aws_highscore_api.log'
+local INIT_FILE_LOG = '/tmp/aws_highscore_init.log'
 
 local hiscore_plugin_path = ""
 
@@ -374,6 +374,7 @@ function hiscore.startplugin()
 		end
 	end)
 	emu.register_stop(function()
+		file_log('REGISTER STOP: ' .. get_file_name())
 		reset(true, not aws_highscore_exists)
 	end)
 	emu.register_prestart(function()
