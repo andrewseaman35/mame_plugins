@@ -3,16 +3,20 @@ local config_file = './aws_highscore/.aws_config'
 local file = {}
 local config = {}
 
+config.DEBUG = false
+
 function api_file_log(str)
-    file = io.open("aws_highscore_api.log", "a+")
-    io.output(file)
-    if type(str) == "string" then
-        io.write(str)
-    else 
-        io.write('bad type: ' .. type(str))
+    if config.DEBUG then
+        file = io.open("aws_highscore_api.log", "a+")
+        io.output(file)
+        if type(str) == "string" then
+            io.write(str)
+        else 
+            io.write('bad type: ' .. type(str))
+        end
+        io.write('\n')
+        io.close(file)
     end
-    io.write('\n')
-    io.close(file)
 end
 
 function file_exists(file)
@@ -30,7 +34,6 @@ function read_config(file)
         api_file_log('CONFIG: ' .. file .. 'does NOT exist!')
   		return {} 
   	end
-    api_file_log('CONFIG exists!')
   	
   	lines = {}
   	

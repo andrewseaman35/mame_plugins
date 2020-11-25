@@ -3,6 +3,9 @@ local sha1 = require "./aws_highscore/sha1/sha1"
 
 local api = {}
 
+local TEMP_OUT = '/tmp/temp_hiscore.out'
+local API_FILE_LOG = '/tmp/aws_highscore_api.log'
+
 
 local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 function base64_encode(data)
@@ -82,7 +85,7 @@ function build_get_request(bucket, filepath)
 			    '-H "Content-Type: ' .. content_type .. '" ' ..
 				'-H "Host: ' .. bucket .. '.s3.amazonaws.com" ' ..
 				'-H "Date: ' .. date .. '" ' ..
-				'-o /tmp/temp_hiscore.out'
+				'-o ' .. TEMP_OUT
 				-- '-o ' .. aws_config._plugin_path .. '/../' .. filepath
 	api_file_log("===== GET CMD =====")
 	api_file_log(cmd)
@@ -91,7 +94,7 @@ function build_get_request(bucket, filepath)
 end
 
 function api_file_log(str)
-	file = io.open("/tmp/aws_highscore_api.log", "a+")
+	file = io.open(API_FILE_LOG, "a+")
 	io.output(file)
 	if type(str) == "string" then
 		io.write(str)
@@ -102,20 +105,6 @@ function api_file_log(str)
 	io.close(file)
 end
 
-function write_to_file(filepath)
-  	api_file_log('*** writing to ' .. filepath)
-  	local output = io.open(filepath, "wb");
-  	if not output then
-		lfs.mkdir( aws_config._plugin_path .. '/../hi' );
-		output = io.open(filepath, "wb");
-  	end
-  	api_file_log("WRITE TO FILE")
-  	if output then
-		output.write('lulz')
-	end
-	output:close();
-end
-
 function api.get_highscore_file(filepath)
 	api_file_log('API 1 get: ' .. filepath)
 	local score_lines = {}
@@ -123,11 +112,12 @@ function api.get_highscore_file(filepath)
 	local file_exists = true
 
 	api_file_log('making the GET request!')
+	io.popen('rm -f ' .. TEMP_OUT)
 	response = io.popen(cmd) 
-	for line in io.lines('/tmp/temp_hiscore.out') do
+	for line in io.lines(TEMP_OUT) do
 		if string.match(line, 'NoSuchKey') then
 			file_exists = false
-			api_file_log('breaking')
+			api_file_log('breaking - NoSuchKey encountered')
 			break
 		end
 		score_lines[#score_lines + 1] = line
@@ -135,9 +125,11 @@ function api.get_highscore_file(filepath)
 	end
 
 	if file_exists then
+		api_file_log('file exists, returning score_lines')
 		return score_lines
 	end
-	
+	api_file_log('aws highscore file does not exist for ' .. filepath)
+
 	return nil
 end
 

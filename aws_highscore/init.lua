@@ -16,10 +16,26 @@ exports.license = "WTFPL license"
 exports.author = { name = "borgar@borgar.net" }
 local hiscore = exports
 
+local INIT_FILE_LOG = '/tmp/aws_highscore_api.log'
+
 local hiscore_plugin_path = ""
 
 function hiscore.set_folder(path)
 	hiscore_plugin_path = path
+end
+
+function file_log(str)
+	if aws_config.DEBUG then
+		file = io.open(INIT_FILE_LOG, "a+")
+		io.output(file)
+		if type(str) == "string" then
+			io.write(str)
+		else 
+			io.write('bad type: ' .. type(str))
+		end
+		io.write('\n')
+		io.close(file)
+	end
 end
 
 function hiscore.startplugin()
@@ -38,6 +54,8 @@ function hiscore.startplugin()
 	local timed_save = true;
 	local delaytime = 0;
 
+	local aws_highscore_exists = false;
+
 	local positions = {};
 	-- Configuration file will be searched in the first path defined
 	-- in mame inipath option.
@@ -47,6 +65,7 @@ function hiscore.startplugin()
 	  if file then
 		file:close()
 		emu.print_verbose( "hiscore: config found" );
+		file_log( "hiscore: config found" );
 		local _conf = {}
 		for line in io.lines(config_path) do
 		  token, spaces, value = string.match(line, '([^ ]+)([ ]+)([^ ]+)');
@@ -171,6 +190,7 @@ function hiscore.startplugin()
 
 	local function write_scores ( posdata )
 	  emu.print_verbose("hiscore: write_scores")
+	  file_log("hiscore: write_scores")
 	  local output = io.open(get_file_name(), "wb");
 	  if not output then
 		-- attempt to create the directory, and try again
@@ -178,6 +198,7 @@ function hiscore.startplugin()
 		output = io.open(get_file_name(), "wb");
 	  end
 	  emu.print_verbose("hiscore: write_scores output")
+	  file_log("hiscore: write_scores output")
 	  if output then
 		for ri,row in ipairs(posdata) do
 		  t = {};
@@ -189,10 +210,12 @@ function hiscore.startplugin()
 		output:close();
 	  end
 	  emu.print_verbose("hiscore: write_scores end")
+	  file_log("hiscore: write_scores end")
 	end
 
 	local function save_scores_from_aws(lines)
   		emu.print_verbose("hiscore: write_scores")
+  		file_log("hiscore: write_scores")
 	    local output = io.open(get_file_name(), "wb");
 	    if not output then
 		    -- attempt to create the directory, and try again
@@ -200,6 +223,7 @@ function hiscore.startplugin()
 			output = io.open(get_file_name(), "wb");
 	  	end
 	  	emu.print_verbose("hiscore: write_scores output")
+	  	file_log("hiscore: write_scores output")
 	  	if output then
 	  		for k,v in pairs(lines) do
 		    	output:write(tostring(v));
@@ -207,6 +231,7 @@ function hiscore.startplugin()
 			output:close();
 	  	end
 	  	emu.print_verbose("hiscore: write_scores end")
+	  	file_log("hiscore: write_scores end")
 	end
 
 
@@ -244,9 +269,11 @@ function hiscore.startplugin()
 		  default_checksum = check_scores( positions );
 		  if read_scores( positions ) then
 			emu.print_verbose( "hiscore: scores read OK" );
+			file_log( "hiscore: scores read OK" );
 		  else
 			-- likely there simply isn't a .hi file around yet
 			emu.print_verbose( "hiscore: scores read FAIL" );
+			file_log( "hiscore: scores read FAIL" );
 		  end
 		  scores_have_been_read = true;
 		  current_checksum = check_scores( positions );
@@ -279,19 +306,25 @@ function hiscore.startplugin()
 			current_checksum = checksum;
 			last_write_time = emu.time();
 			-- emu.print_verbose( "SAVE SCORES EVENT!", last_write_time );
+			-- file_log( "SAVE SCORES EVENT!", last_write_time );
 		  end
 		end
 	  end
 	end
 
-	local function reset(save_to_aws)
+	local function reset(save_to_aws, force_local_write)
 	  -- the notifier will still be attached even if the running game has no hiscore.dat entry
+	  file_log('  mem_check_passed ' .. tostring(mem_check_passed))
+	  file_log('  found_hiscore_entry ' .. tostring(found_hiscore_entry))
+	  file_log('  save_to_aws ' .. tostring(save_to_aws))
+	  file_log('  force_local_write ' .. tostring(force_local_write))
 	  if mem_check_passed and found_hiscore_entry then
 		local checksum = check_scores(positions)
-		if checksum ~= current_checksum and checksum ~= default_checksum then
-		  write_scores(positions)
+		if force_local_write or (checksum ~= current_checksum and checksum ~= default_checksum) then
+		    write_scores(positions)
 		end
 		if save_to_aws then
+			file_log('calling api.save_highscore_file ' .. get_file_name())
 	     	api.save_highscore_file(get_file_name())
 		end
 	  end
@@ -306,11 +339,13 @@ function hiscore.startplugin()
 		scores_have_been_read = false;
 		last_write_time = -10
 		emu.print_verbose("Starting " .. emu.gamename())
+		file_log("Starting " .. emu.gamename())
 		config_read = read_config();
 		aws_config.init(hiscore_plugin_path)
 		local dat = read_hiscore_dat()
 		if dat and dat ~= "" then
 			emu.print_verbose( "hiscore: found hiscore.dat entry for " .. emu.romname() );
+			file_log( "hiscore: found hiscore.dat entry for " .. emu.romname() );
 			res, positions = pcall(parse_table, dat);
 			if not res then
 				emu.print_error("hiscore: hiscore.dat parse error " .. positions);
@@ -323,10 +358,13 @@ function hiscore.startplugin()
 					end
 				end
 			end
-			local aws_highscore = api.get_highscore_file(get_file_name())
+			aws_highscore = api.get_highscore_file(get_file_name())
 			if aws_highscore ~= nil then
+				file_log('-- setting aws_highscore to true')
+				aws_highscore_exists = true
 				save_scores_from_aws(aws_highscore)
 			end
+			file_log('setting found_hiscore_entry to true')
 			found_hiscore_entry = true
 		end
 	end)
@@ -336,10 +374,10 @@ function hiscore.startplugin()
 		end
 	end)
 	emu.register_stop(function()
-		reset(true)
+		reset(true, not aws_highscore_exists)
 	end)
 	emu.register_prestart(function()
-		reset(false)
+		reset(false, false)
 	end)
 end
 
