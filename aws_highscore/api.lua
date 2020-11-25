@@ -36,7 +36,6 @@ function base64_decode(data)
     end))
 end
 
-
 function get_date_header()
 	api_file_log('get_date_header')
 	local utc_timestamp = os.time()
@@ -72,7 +71,7 @@ function build_put_request(bucket, filepath)
 	return cmd
 end
 
-function build_get_request(bucket, filepath)
+function build_get_request(bucket, filepath, temp_file)
 	-- Need to make this so it does -o to a file, but we write to the file separately
 	local date = get_date_header()
 	local resource = "/" .. bucket .. "/" .. filepath
@@ -85,7 +84,7 @@ function build_get_request(bucket, filepath)
 			    '-H "Content-Type: ' .. content_type .. '" ' ..
 				'-H "Host: ' .. bucket .. '.s3.amazonaws.com" ' ..
 				'-H "Date: ' .. date .. '" ' ..
-				'-o ' .. TEMP_OUT
+				'-o ' .. temp_file
 				-- '-o ' .. aws_config._plugin_path .. '/../' .. filepath
 	api_file_log("===== GET CMD =====")
 	api_file_log(cmd)
@@ -108,13 +107,13 @@ end
 function api.get_highscore_file(filepath)
 	api_file_log('API 1 get: ' .. filepath)
 	local score_lines = {}
-	local cmd = build_get_request("aseaman-public-bucket", filepath)
+	temp_file = os.tmpname()
+	local cmd = build_get_request("aseaman-public-bucket", filepath, temp_file)
 	local file_exists = true
 
 	api_file_log('making the GET request!')
-	io.popen('rm -f ' .. TEMP_OUT)
-	response = io.popen(cmd) 
-	for line in io.lines(TEMP_OUT) do
+	response = os.execute(cmd) 
+	for line in io.lines(temp_file) do
 		if string.match(line, 'NoSuchKey') then
 			file_exists = false
 			api_file_log('breaking - NoSuchKey encountered')
@@ -123,6 +122,7 @@ function api.get_highscore_file(filepath)
 		score_lines[#score_lines + 1] = line
 		api_file_log(line)
 	end
+	os.remove(temp_file)
 
 	if file_exists then
 		api_file_log('file exists, returning score_lines')
@@ -138,7 +138,7 @@ function api.save_highscore_file(filename)
 	local cmd = build_put_request("aseaman-public-bucket", filename)
 	if true then
 		api_file_log('making the PUT request!')
-		response = io.popen(cmd)
+		response = os.execute(cmd)
 	else
 		api_file_log('didnt make the PUT request')
 	end

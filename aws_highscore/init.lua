@@ -160,15 +160,20 @@ function hiscore.startplugin()
 
 
 	local function check_mem ( posdata )
+		file_log('CHECKMEM')
 	  if #posdata < 1 then
+	  	file_log('CHECKMEM: posdata less than 1')
 		return false;
 	  end
 	  for ri,row in ipairs(posdata) do
 		-- must pass mem check
 		if row["c_start"] ~= row["mem"]:read_u8(row["addr"]) then
+	  	  file_log('CHECKMEM: cstart')
 		  return false;
 		end
 		if row["c_end"] ~= row["mem"]:read_u8(row["addr"]+row["size"]-1) then
+	  	  file_log('CHECKMEM: cend')
+
 		  return false;
 		end
 	  end
@@ -189,7 +194,7 @@ function hiscore.startplugin()
 
 
 	local function write_scores ( posdata )
-	  emu.print_verbose("hiscore: write_scores")
+	  emu.print_verbose("hiscore: write_scores to " .. get_file_name())
 	  file_log("hiscore: write_scores")
 	  local output = io.open(get_file_name(), "wb");
 	  if not output then
