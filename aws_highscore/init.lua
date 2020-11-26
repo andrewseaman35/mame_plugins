@@ -218,7 +218,7 @@ function hiscore.startplugin()
 	  file_log("hiscore: write_scores end")
 	end
 
-	local function save_scores_from_aws(lines)
+	local function save_scores_from_aws(file_content)
   		emu.print_verbose("hiscore: write_scores")
   		file_log("hiscore: write_scores")
 	    local output = io.open(get_file_name(), "wb");
@@ -230,9 +230,8 @@ function hiscore.startplugin()
 	  	emu.print_verbose("hiscore: write_scores output")
 	  	file_log("hiscore: write_scores output")
 	  	if output then
-	  		for k,v in pairs(lines) do
-		    	output:write(tostring(v));
-	  		end
+	  		file_log(file_content)
+			output:write(file_content)
 			output:close();
 	  	end
 	  	emu.print_verbose("hiscore: write_scores end")

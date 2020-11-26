@@ -113,20 +113,20 @@ function api.get_highscore_file(filepath)
 
 	api_file_log('making the GET request!')
 	response = os.execute(cmd) 
+
 	for line in io.lines(temp_file) do
 		if string.match(line, 'NoSuchKey') then
 			file_exists = false
 			api_file_log('breaking - NoSuchKey encountered')
 			break
 		end
-		score_lines[#score_lines + 1] = line
-		api_file_log(line)
 	end
-	os.remove(temp_file)
 
 	if file_exists then
-		api_file_log('file exists, returning score_lines')
-		return score_lines
+		local out = assert(io.open(temp_file, 'rb'))
+		local data = out:read('*all')
+		api_file_log('file exists new read, returning score_lines')
+		return data
 	end
 	api_file_log('aws highscore file does not exist for ' .. filepath)
 
