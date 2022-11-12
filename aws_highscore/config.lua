@@ -4,6 +4,12 @@ local file = {}
 local config = {}
 
 config.DEBUG = false
+config.BASE_DIR = io.popen"cd":read'*l'
+config.DATA_DIR = config.BASE_DIR .. "\\plugins\\aws_highscore\\data"
+config.API_FILE_LOG = config.BASE_DIR .. "\\plugins\\aws_highscore\\data\\aws_highscore_api.log"
+config.INIT_FILE_LOG = config.BASE_DIR .. "\\plugins\\aws_highscore\\data\\aws_highscore_init.log"
+config.TEMP_OUT = config.BASE_DIR .. "\\plugins\\aws_highscore\\data\\temp_hiscore.out"
+config.CURL = config.BASE_DIR .. "\\plugins\\aws_highscore\\bin\\curl"
 
 function api_file_log(str)
     if config.DEBUG then

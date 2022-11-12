@@ -1,11 +1,7 @@
-local aws_config = require "./aws_highscore/config"
+local config = require "./aws_highscore/config"
 local sha1 = require "./aws_highscore/sha1/sha1"
 
 local api = {}
-
-local TEMP_OUT = '/tmp/temp_hiscore.out'
-local API_FILE_LOG = '/tmp/aws_highscore_api.log'
-
 
 local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 function base64_encode(data)
@@ -43,8 +39,8 @@ function get_date_header()
 end
 
 function build_authorization(string_to_sign)
-	local aws_access_key_id = aws_config.aws_access_key_id
-	local aws_secret_key = aws_config.aws_secret_key
+	local aws_access_key_id = config.aws_access_key_id
+	local aws_secret_key = config.aws_secret_key
 	local signature = base64_encode(sha1.hmac_binary(aws_secret_key, string_to_sign))
 	local authorization = "AWS " .. aws_access_key_id .. ':' .. signature
 	return authorization
@@ -59,7 +55,7 @@ function build_put_request(bucket, filepath)
 
 	local authorization = build_authorization(string_to_sign)
 
-	local cmd = 'curl -v -X PUT -T "' .. filepath .. '" ' ..
+	local cmd = config.CURL .. ' -v -X PUT -T "' .. filepath .. '" ' ..
 				'-H "Host: ' .. bucket .. '.s3.amazonaws.com" ' ..
 				'-H "Date: ' .. date .. '" ' ..
 				'-H "Content-Type: ' .. content_type .. '" ' ..
@@ -79,13 +75,13 @@ function build_get_request(bucket, filepath, temp_file)
 	local string_to_sign = "GET\n\n" .. content_type .. '\n' .. date .. '\n' .. resource
 	local authorization = build_authorization(string_to_sign)
 
-	local cmd = 'curl -v https://' .. bucket .. '.s3.amazonaws.com/' .. filepath .. ' ' ..
+	local cmd = config.CURL .. ' -v https://' .. bucket .. '.s3.amazonaws.com/' .. filepath .. ' ' ..
 			    '-H "Authorization: ' .. authorization .. '" ' ..
 			    '-H "Content-Type: ' .. content_type .. '" ' ..
 				'-H "Host: ' .. bucket .. '.s3.amazonaws.com" ' ..
 				'-H "Date: ' .. date .. '" ' ..
 				'-o ' .. temp_file
-				-- '-o ' .. aws_config._plugin_path .. '/../' .. filepath
+				-- '-o ' .. config._plugin_path .. '/../' .. filepath
 	api_file_log("===== GET CMD =====")
 	api_file_log(cmd)
 	api_file_log("===================")
@@ -93,7 +89,7 @@ function build_get_request(bucket, filepath, temp_file)
 end
 
 function api_file_log(str)
-	file = io.open(API_FILE_LOG, "a+")
+	file = io.open(config.API_FILE_LOG, "a+")
 	io.output(file)
 	if type(str) == "string" then
 		io.write(str)
@@ -107,7 +103,7 @@ end
 function api.get_highscore_file(filepath)
 	api_file_log('API 1 get: ' .. filepath)
 	local score_lines = {}
-	temp_file = os.tmpname()
+	temp_file = config.TEMP_OUT
 	local cmd = build_get_request("aseaman-public-bucket", filepath, temp_file)
 	local file_exists = true
 
@@ -118,6 +114,11 @@ function api.get_highscore_file(filepath)
 		if string.match(line, 'NoSuchKey') then
 			file_exists = false
 			api_file_log('breaking - NoSuchKey encountered')
+			break
+		end
+		if string.match(line, 'Denied') then
+			file_exists = false
+			api_file_log('breaking - Access Denied encountered')
 			break
 		end
 	end
