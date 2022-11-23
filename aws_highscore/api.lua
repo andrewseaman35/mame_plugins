@@ -89,15 +89,17 @@ function build_get_request(bucket, filepath, temp_file)
 end
 
 function api_file_log(str)
-	file = io.open(config.API_FILE_LOG, "a+")
-	io.output(file)
-	if type(str) == "string" then
-		io.write(str)
-	else 
-		io.write('bad type: ' .. type(str))
+	if config.DEBUG then
+		file = io.open(config.API_FILE_LOG, "a+")
+		io.output(file)
+		if type(str) == "string" then
+			io.write(str)
+		else 
+			io.write('bad type: ' .. type(str))
+		end
+		io.write('\n')
+		io.close(file)
 	end
-	io.write('\n')
-	io.close(file)
 end
 
 function api.get_highscore_file(filepath)

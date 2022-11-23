@@ -6,7 +6,7 @@
 -- builds did in the past.
 --
 local api = require "./aws_highscore/api"
-local aws_config = require "./aws_highscore/config"
+local config = require "./aws_highscore/config"
 
 local exports = {}
 exports.name = "hiscore"
@@ -23,8 +23,8 @@ function hiscore.set_folder(path)
 end
 
 function file_log(str)
-	if aws_config.DEBUG then
-		file = io.open(config.INIT_FILE_LOG, "a+")
+	if config.DEBUG then
+		file = io.open(config.PLUGIN_FILE_LOG, "a+")
 		io.output(file)
 		if type(str) == "string" then
 			io.write(str)
@@ -157,20 +157,15 @@ function hiscore.startplugin()
 
 
 	local function check_mem ( posdata )
-		file_log('CHECKMEM')
 	  if #posdata < 1 then
-	  	file_log('CHECKMEM: posdata less than 1')
 		return false;
 	  end
 	  for ri,row in ipairs(posdata) do
 		-- must pass mem check
 		if row["c_start"] ~= row["mem"]:read_u8(row["addr"]) then
-	  	  file_log('CHECKMEM: cstart')
 		  return false;
 		end
 		if row["c_end"] ~= row["mem"]:read_u8(row["addr"]+row["size"]-1) then
-	  	  file_log('CHECKMEM: cend')
-
 		  return false;
 		end
 	  end
@@ -342,7 +337,7 @@ function hiscore.startplugin()
 		emu.print_verbose("Starting " .. emu.gamename())
 		file_log("Starting " .. emu.gamename())
 		config_read = read_config();
-		aws_config.init(hiscore_plugin_path)
+		config.init(hiscore_plugin_path)
 		local dat = read_hiscore_dat()
 		if dat and dat ~= "" then
 			emu.print_verbose( "hiscore: found hiscore.dat entry for " .. emu.romname() );
